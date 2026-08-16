@@ -18,7 +18,7 @@ public class HomeController {
     @GetMapping({"/", "/home"})
     public String home(Authentication authentication, Model model) {
         long total = knowledgeDocumentRepository.count();
-        long ready = knowledgeDocumentRepository.countByStatus(com.ai.applications.rag.ragmvp1.models.DocumentStatus.READY);
+        long ready = knowledgeDocumentRepository.countByStatus(com.ai.applications.rag.ragmvp1.domain.entity.DocumentStatus.READY);
         model.addAttribute("documentCount", total);
         model.addAttribute("readyCount", ready);
         model.addAttribute("username", authentication != null ? authentication.getName() : "guest");

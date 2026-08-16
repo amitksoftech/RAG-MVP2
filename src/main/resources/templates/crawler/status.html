@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insight Vault | Crawler Status</title>
+    <link rel="stylesheet" th:href="@{/css/application.css}" />
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-mark">IV</div>
+            <div>
+                <div class="brand-name">Insight Vault</div>
+                <div class="brand-subtitle">Crawler monitor</div>
+            </div>
+        </div>
+        <nav class="nav">
+            <a class="nav-link" th:href="@{/home}">Overview</a>
+            <a class="nav-link" th:href="@{/documents}">Documents</a>
+            <a class="nav-link" th:href="@{/documents/upload}">Upload</a>
+            <a class="nav-link" th:href="@{/retrieve}">Search</a>
+            <a class="nav-link active" th:href="@{/crawler}">Crawler</a>
+            <a class="nav-link" th:href="@{/admin/statistics}" sec:authorize="hasRole('ADMIN')">Statistics</a>
+            <a class="nav-link" th:href="@{/admin/monitoring}" sec:authorize="hasRole('ADMIN')">Monitoring</a>
+        </nav>
+        <div class="user-block">
+            <span class="user-name" sec:authentication="name">user</span>
+            <form th:action="@{/logout}" method="post" class="inline-form">
+                <button type="submit" class="link-button">Logout</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="main-panel">
+
+        <section class="card crawler-control-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Active crawler</p>
+                    <h1 th:text="${crawler.seedUrl}">URL</h1>
+                </div>
+                <a class="button secondary" th:href="@{/crawler}">Back to list</a>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <!-- Status + live stats -->
+            <div class="crawler-status-box">
+                <div>
+                    <div class="status-label">Status</div>
+                    <div id="statusBadge" class="status-badge"
+                         th:classappend="${crawler.status.name() == 'RUNNING'} ? ' is-running' : (${crawler.status.name() == 'PAUSED'} ? ' is-paused' : (${crawler.status.name() == 'ERROR'} ? ' is-failed' : ' is-idle'))"
+                         th:text="${crawler.status}">RUNNING</div>
+                </div>
+                <div class="crawler-live-stats">
+                    <div class="live-stat">
+                        <div class="live-stat-value" id="statCrawled" th:text="${crawler.pagesCrawled}">0</div>
+                        <div class="live-stat-label">Pages crawled</div>
+                    </div>
+                    <div class="live-stat">
+                        <div class="live-stat-value" id="statQueued" th:text="${crawler.pagesQueued}">0</div>
+                        <div class="live-stat-label">Pages in queue</div>
+                    </div>
+                    <div class="live-stat">
+                        <div class="live-stat-value" id="statIndexed" th:text="${#lists.size(content)}">0</div>
+                        <div class="live-stat-label">Pages indexed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusMsg" class="crawler-status-info">
+                <p th:if="${crawler.status.name() == 'RUNNING'}" class="status-running-msg">
+                    🚀 Crawling in background — stats update automatically every 3 seconds.
+                </p>
+                <p th:if="${crawler.status.name() == 'PAUSED'}" class="status-paused-msg">
+                    ⏸ Crawler paused. Click Resume to continue.
+                </p>
+                <p th:if="${crawler.status.name() == 'STOPPED'}" class="status-stopped-msg">
+                    ⏹ Crawler stopped. All indexed content is searchable via Search.
+                </p>
+                <p th:if="${crawler.status.name() == 'ERROR'}" class="status-error-msg">
+                    ❌ Error: <span th:text="${crawler.errorMessage}"></span>
+                </p>
+            </div>
+
+            <!-- Control buttons -->
+            <div class="crawler-controls">
+                <form th:action="@{/crawler/{id}/pause(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button primary"
+                            th:disabled="${crawler.status.name() != 'RUNNING'}">⏸ Pause</button>
+                </form>
+                <form th:action="@{/crawler/{id}/resume(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button secondary"
+                            th:disabled="${crawler.status.name() != 'PAUSED'}">▶ Resume</button>
+                </form>
+                <form th:action="@{/crawler/{id}/stop(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button danger"
+                            th:disabled="${crawler.status.name() == 'STOPPED' or crawler.status.name() == 'ERROR'}">⏹ Stop</button>
+                </form>
+                <a th:href="@{/retrieve}" class="button secondary">🔍 Search indexed content</a>
+            </div>
+        </section>
+
+        <!-- Crawled pages table -->
+        <section class="card crawler-content-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Indexed content</p>
+                    <h1>Crawled pages</h1>
+                </div>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(content)}" class="table-wrap" id="contentTable">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>URL</th>
+                            <th>Title</th>
+                            <th>Chunks</th>
+                            <th>Scraped</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item, i : ${content}">
+                            <td th:text="${i.count}">1</td>
+                            <td class="url-cell">
+                                <a th:href="${item.url}" target="_blank" th:text="${item.url}">URL</a>
+                            </td>
+                            <td th:text="${item.title}">-</td>
+                            <td th:text="${item.chunkCount}">0</td>
+                            <td th:text="${#temporals.format(item.scrapedAt, 'MM-dd HH:mm:ss')}">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${#lists.isEmpty(content)}" id="emptyState">
+                <p class="empty-title">No content yet</p>
+                <p class="muted">Crawler is running in the background. Pages will appear here as they are indexed.</p>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script th:inline="javascript">
+    const crawlerId = /*[[${crawler.id}]]*/ '';
+    const pollUrl = '/crawler/' + crawlerId + '/poll';
+    let isRunning = /*[[${crawler.status.name() == 'RUNNING'}]]*/ false;
+
+    function updateBadge(status) {
+        const el = document.getElementById('statusBadge');
+        if (!el) return;
+        el.textContent = status;
+        el.className = 'status-badge';
+        if (status === 'RUNNING') el.classList.add('is-running');
+        else if (status === 'PAUSED') el.classList.add('is-paused');
+        else if (status === 'ERROR') el.classList.add('is-failed');
+        else el.classList.add('is-idle');
+    }
+
+    function updateMsg(status, errorMessage) {
+        const el = document.getElementById('statusMsg');
+        if (!el) return;
+        const msgs = {
+            'RUNNING': '<p class="status-running-msg">🚀 Crawling in background — stats update automatically every 3 seconds.</p>',
+            'PAUSED':  '<p class="status-paused-msg">⏸ Crawler paused. Click Resume to continue.</p>',
+            'STOPPED': '<p class="status-stopped-msg">⏹ Crawler stopped. All indexed content is searchable via Search.</p>',
+            'ERROR':   '<p class="status-error-msg">❌ Error: ' + errorMessage + '</p>'
+        };
+        el.innerHTML = msgs[status] || '';
+    }
+
+    async function poll() {
+        try {
+            const resp = await fetch(pollUrl);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            document.getElementById('statCrawled').textContent = data.pagesCrawled;
+            document.getElementById('statQueued').textContent = data.pagesQueued;
+            updateBadge(data.status);
+            updateMsg(data.status, data.errorMessage);
+            if (data.status !== 'RUNNING' && data.status !== 'PAUSED') {
+                // Reload page when done so the full table renders
+                location.reload();
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    if (isRunning) {
+        setInterval(poll, 3000);
+    }
+</script>
+</body>
+</html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insight Vault | Crawler Status</title>
+    <link rel="stylesheet" th:href="@{/css/application.css}" />
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-mark">IV</div>
+            <div>
+                <div class="brand-name">Insight Vault</div>
+                <div class="brand-subtitle">Crawler monitor</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <a class="nav-link" th:href="@{/home}">Overview</a>
+            <a class="nav-link" th:href="@{/documents}">Documents</a>
+            <a class="nav-link" th:href="@{/documents/upload}">Upload</a>
+            <a class="nav-link" th:href="@{/retrieve}">Search</a>
+            <a class="nav-link active" th:href="@{/crawler}">Crawler</a>
+            <a class="nav-link" th:href="@{/admin/statistics}" sec:authorize="hasRole('ADMIN')">Statistics</a>
+            <a class="nav-link" th:href="@{/admin/monitoring}" sec:authorize="hasRole('ADMIN')">Monitoring</a>
+        </nav>
+
+        <div class="user-block">
+            <span class="user-name" sec:authentication="name">user</span>
+            <form th:action="@{/logout}" method="post" class="inline-form">
+                <button type="submit" class="link-button">Logout</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="main-panel" th:if="${crawler != null}">
+
+        <!-- Crawler Controls & Status -->
+        <section class="card crawler-control-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Active session</p>
+                    <h1>Crawler: <span th:text="${crawler.seedUrl}">URL</span></h1>
+                </div>
+                <a class="button secondary" th:href="@{/crawler}">Back to list</a>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <!-- Status Badge -->
+            <div class="crawler-status-box">
+                <div class="status-label">Current Status</div>
+                <div class="status-value">
+                    <span class="status-badge"
+                          th:classappend="${crawler.status.name() == 'RUNNING'} ? ' is-running' : (${crawler.status.name() == 'PAUSED'} ? ' is-paused' : (${crawler.status.name() == 'ERROR'} ? ' is-failed' : ' is-idle'))"
+                          th:text="${crawler.status}">RUNNING</span>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="crawler-controls">
+                <form th:action="@{/crawler/{id}/pause(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button primary" th:disabled="${crawler.status.name() != 'RUNNING'}">
+                        ⏸ Pause
+                    </button>
+                </form>
+
+                <form th:action="@{/crawler/{id}/resume(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button secondary" th:disabled="${crawler.status.name() != 'PAUSED'}">
+                        ▶ Resume
+                    </button>
+                </form>
+
+                <form th:action="@{/crawler/{id}/stop(id=${crawler.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button danger" th:disabled="${crawler.status.name() == 'STOPPED'}">
+                        ⏹ Stop
+                    </button>
+                </form>
+            </div>
+
+            <div class="crawler-status-info">
+                <p th:if="${crawler.status.name() == 'RUNNING'}" class="status-running-msg">
+                    🚀 Crawler is running automatically. Crawling pages and indexing content...
+                </p>
+                <p th:if="${crawler.status.name() == 'PAUSED'}" class="status-paused-msg">
+                    ⏸ Crawler is paused. Click Resume to continue crawling.
+                </p>
+                <p th:if="${crawler.status.name() == 'STOPPED'}" class="status-stopped-msg">
+                    ⏹ Crawler is stopped.
+                </p>
+                <p th:if="${crawler.errorMessage != null}" class="status-error-msg">
+                    ❌ Error: <span th:text="${crawler.errorMessage}">Error details</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Crawler Stats -->
+        <section class="card crawler-stats-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Crawling metrics</p>
+                    <h1>Progress summary</h1>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <article class="card stat-card">
+                    <div class="stat-label">Pages crawled</div>
+                    <div class="stat-value" th:text="${crawler.pagesCrawled}">0</div>
+                    <div class="stat-meta">Processed</div>
+                </article>
+                <article class="card stat-card">
+                    <div class="stat-label">Pages queued</div>
+                    <div class="stat-value" th:text="${crawler.pagesQueued}">0</div>
+                    <div class="stat-meta">Awaiting crawl</div>
+                </article>
+                <article class="card stat-card">
+                    <div class="stat-label">Total content</div>
+                    <div class="stat-value" th:text="${contentCount}">0</div>
+                    <div class="stat-meta">Pages indexed</div>
+                </article>
+                <article class="card stat-card">
+                    <div class="stat-label">Max pages</div>
+                    <div class="stat-value" th:text="${crawler.maxPages}">500</div>
+                    <div class="stat-meta">Session limit</div>
+                </article>
+                <article class="card stat-card">
+                    <div class="stat-label">Depth limit</div>
+                    <div class="stat-value" th:text="${crawler.maxDepth}">3</div>
+                    <div class="stat-meta">Link hops</div>
+                </article>
+                <article class="card stat-card" th:if="${crawler.errorMessage != null}">
+                    <div class="stat-label">Last error</div>
+                    <div class="stat-value error-text" th:text="${crawler.errorMessage}">Error</div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Crawled Content -->
+        <section class="card crawler-content-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Indexed content</p>
+                    <h1>Crawled pages</h1>
+                </div>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(content)}" class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Title</th>
+                            <th>Chunks</th>
+                            <th>Scraped</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${content}">
+                            <td class="url-cell">
+                                <a th:href="${item.url}" target="_blank" th:text="${item.url}">URL</a>
+                            </td>
+                            <td th:text="${item.title}">-</td>
+                            <td th:text="${item.chunkCount}">0</td>
+                            <td th:text="${#temporals.format(item.scrapedAt, 'MM-dd HH:mm')}">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${#lists.isEmpty(content)}" class="empty-state-card">
+                <p class="empty-title">No content yet</p>
+                <p class="muted">Click "Crawl Next Page" to start harvesting content.</p>
+            </div>
+        </section>
+
+        <script>
+            // Auto-refresh every 3 seconds while running
+            const crawlerStatus = document.querySelector('.status-badge');
+            if (crawlerStatus && crawlerStatus.textContent.trim() === 'RUNNING') {
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }
+        </script>
+
+    </main>
+</div>
+</body>
+</html>

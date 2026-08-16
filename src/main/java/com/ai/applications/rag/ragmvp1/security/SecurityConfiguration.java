@@ -30,6 +30,8 @@ public class SecurityConfiguration {
 
                         .requestMatchers(
                                 "/documents/**",
+                                "/retrieve/**",
+                                "/crawler/**",
                                 "/home"
                         )
                         .hasAnyRole("USER", "ADMIN")

@@ -1,7 +1,7 @@
 package com.ai.applications.rag.ragmvp1.repository;
 
-import com.ai.applications.rag.ragmvp1.models.DocumentStatus;
-import com.ai.applications.rag.ragmvp1.models.entity.KnowledgeDocument;
+import com.ai.applications.rag.ragmvp1.domain.entity.DocumentStatus;
+import com.ai.applications.rag.ragmvp1.domain.entity.KnowledgeDocument;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 

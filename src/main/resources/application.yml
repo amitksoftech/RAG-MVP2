@@ -49,3 +49,46 @@ app:
     admin-password: admin123
     user-username: user
     user-password: user123
+
+  # ── Embedding provider ──────────────────────────────────────────────────────
+  # Supported values: hash | openai | gemini | ollama
+  # WARNING: Switching providers requires re-ingesting all documents because
+  #          the vector dimensions change (hash=8, openai=1536, gemini=768, ollama=768).
+  #          Drop the vector_store table before switching.
+  embedding:
+    provider: hash   # ← change this to switch providers
+
+    openai:
+      api-key: ${OPENAI_API_KEY:}          # set env var or override here
+      model: text-embedding-3-small        # or text-embedding-3-large
+      # dimensions: 1536                   # optional: reduce for cost savings
+
+    gemini:
+      project-id: ${GCP_PROJECT_ID:}       # GCP project, uses GOOGLE_APPLICATION_CREDENTIALS
+      location: us-central1
+      model: text-embedding-004            # or gemini-embedding-exp-03-07
+
+    ollama:
+      base-url: http://localhost:11434
+      model: nomic-embed-text              # or mxbai-embed-large (1024-dim)
+
+  # ── LLM / Chat model provider ───────────────────────────────────────────────
+  # Set enabled: true and choose a provider to activate answer generation.
+  # When enabled: false the app runs in retrieval-only mode (no ChatModel bean).
+  llm:
+    enabled: false   # ← set to true to enable RAG answer generation
+    provider: openai # openai | gemini | ollama
+
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: gpt-4o-mini
+      temperature: 0.7
+
+    gemini:
+      project-id: ${GCP_PROJECT_ID:}
+      location: us-central1
+      model: gemini-2.0-flash
+
+    ollama:
+      base-url: http://localhost:11434
+      model: llama3.2

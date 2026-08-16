@@ -31,10 +31,22 @@ public class AsyncConfiguration implements AsyncConfigurer {
         return executor;
     }
 
+    @Bean(name = "crawlerExecutor")
+    public Executor crawlerExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("rag-crawler-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (throwable, method, params) -> {
-            log.error("Async ingestion failure in method {} with params {}", method.getName(), params, throwable);
+            log.error("Async failure in method {} with params {}", method.getName(), params, throwable);
         };
     }
 }

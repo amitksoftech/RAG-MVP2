@@ -1,6 +1,6 @@
 package com.ai.applications.rag.ragmvp1.repository;
 
-import com.ai.applications.rag.ragmvp1.models.AppUser;
+import com.ai.applications.rag.ragmvp1.domain.entity.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

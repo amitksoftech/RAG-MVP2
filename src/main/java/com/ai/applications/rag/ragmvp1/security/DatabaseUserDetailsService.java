@@ -1,6 +1,6 @@
 package com.ai.applications.rag.ragmvp1.security;
 
-import com.ai.applications.rag.ragmvp1.models.AppUser;
+import com.ai.applications.rag.ragmvp1.domain.entity.AppUser;
 import com.ai.applications.rag.ragmvp1.repository.AppUserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;

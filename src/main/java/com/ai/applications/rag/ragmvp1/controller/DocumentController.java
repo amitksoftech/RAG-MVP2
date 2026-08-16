@@ -1,8 +1,8 @@
 package com.ai.applications.rag.ragmvp1.controller;
 
-import com.ai.applications.rag.ragmvp1.models.entity.KnowledgeDocument;
+import com.ai.applications.rag.ragmvp1.domain.entity.KnowledgeDocument;
 import com.ai.applications.rag.ragmvp1.repository.KnowledgeDocumentRepository;
-import com.ai.applications.rag.ragmvp1.service.DocumentService;
+import com.ai.applications.rag.ragmvp1.service.document.DocumentService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

@@ -1,8 +1,8 @@
 package com.ai.applications.rag.ragmvp1.controller;
 
-import com.ai.applications.rag.ragmvp1.models.IngestionStatistics;
-import com.ai.applications.rag.ragmvp1.service.AdminDocumentService;
-import com.ai.applications.rag.ragmvp1.service.StatisticsService;
+import com.ai.applications.rag.ragmvp1.domain.dto.IngestionStatistics;
+import com.ai.applications.rag.ragmvp1.service.document.AdminDocumentService;
+import com.ai.applications.rag.ragmvp1.service.monitoring.StatisticsService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

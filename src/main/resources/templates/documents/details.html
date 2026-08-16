@@ -21,7 +21,10 @@
                 <a class="nav-link" th:href="@{/home}">Overview</a>
                 <a class="nav-link active" th:href="@{/documents}">Documents</a>
                 <a class="nav-link" th:href="@{/documents/upload}">Upload</a>
+                <a class="nav-link" th:href="@{/retrieve}">Search</a>
+                <a class="nav-link" th:href="@{/crawler}">Crawler</a>
                 <a class="nav-link" th:href="@{/admin/statistics}" sec:authorize="hasRole('ADMIN')">Statistics</a>
+                <a class="nav-link" th:href="@{/admin/monitoring}" sec:authorize="hasRole('ADMIN')">Monitoring</a>
             </nav>
 
             <div class="user-block">

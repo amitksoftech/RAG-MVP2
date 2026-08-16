@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insight Vault | Knowledge Search</title>
+    <link rel="stylesheet" th:href="@{/css/application.css}" />
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-mark">IV</div>
+            <div>
+                <div class="brand-name">Insight Vault</div>
+                <div class="brand-subtitle">Knowledge search</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <a class="nav-link" th:href="@{/home}">Overview</a>
+            <a class="nav-link" th:href="@{/documents}">Documents</a>
+            <a class="nav-link" th:href="@{/documents/upload}">Upload</a>
+            <a class="nav-link active" th:href="@{/retrieve}">Search</a>
+            <a class="nav-link" th:href="@{/crawler}">Crawler</a>
+            <a class="nav-link" th:href="@{/admin/statistics}" sec:authorize="hasRole('ADMIN')">Statistics</a>
+            <a class="nav-link" th:href="@{/admin/monitoring}" sec:authorize="hasRole('ADMIN')">Monitoring</a>
+        </nav>
+
+        <div class="user-block">
+            <span class="user-name" sec:authentication="name">user</span>
+            <form th:action="@{/logout}" method="post" class="inline-form">
+                <button type="submit" class="link-button">Logout</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="main-panel">
+
+        <!-- Search form -->
+        <section class="card retrieve-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Semantic retrieval</p>
+                    <h1>Search the knowledge base</h1>
+                </div>
+            </div>
+
+            <div th:if="${feedbackMessage}" class="alert alert-success" th:text="${feedbackMessage}"></div>
+
+            <form th:action="@{/retrieve}" method="get" class="retrieve-form">
+                <div class="retrieve-input-row">
+                    <input type="text"
+                           name="query"
+                           th:value="${query}"
+                           placeholder="Ask a question or describe what you are looking for…"
+                           class="retrieve-input"
+                           autocomplete="off"
+                           autofocus />
+                    <select name="topK" class="retrieve-topk">
+                        <option value="3"  th:selected="${topK == 3}">Top 3</option>
+                        <option value="5"  th:selected="${topK == 5}">Top 5</option>
+                        <option value="10" th:selected="${topK == 10}">Top 10</option>
+                        <option value="20" th:selected="${topK == 20}">Top 20</option>
+                    </select>
+                    <button type="submit" class="button primary">Search</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results -->
+        <section th:if="${results != null}" class="retrieve-results-section">
+
+            <div class="results-header">
+                <span class="results-count"
+                      th:text="${resultCount} + ' result' + (${resultCount} != 1 ? 's' : '') + ' for &quot;' + ${query} + '&quot;'">
+                    0 results
+                </span>
+
+                <!-- Feedback (shown only when there is a queryLogId) -->
+                <div class="feedback-row" th:if="${queryLogId != null}">
+                    <span class="feedback-label">Were these results helpful?</span>
+                    <form th:action="@{/retrieve/feedback}" method="post" class="inline-form">
+                        <input type="hidden" name="queryLogId" th:value="${queryLogId}" />
+                        <input type="hidden" name="positive" value="true" />
+                        <button type="submit" class="feedback-btn feedback-yes" title="Yes, helpful">&#128077; Yes</button>
+                    </form>
+                    <form th:action="@{/retrieve/feedback}" method="post" class="inline-form">
+                        <input type="hidden" name="queryLogId" th:value="${queryLogId}" />
+                        <input type="hidden" name="positive" value="false" />
+                        <button type="submit" class="feedback-btn feedback-no" title="Not helpful">&#128078; No</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Result cards -->
+            <div th:if="${!#lists.isEmpty(results)}" class="result-list">
+                <article class="card result-card" th:each="result, stat : ${results}">
+                    <div class="result-rank">#<span th:text="${stat.count}">1</span></div>
+                    <div class="result-body">
+                        <div class="result-meta-row">
+                            <span class="result-source" th:text="${result.sourceName}">document.pdf</span>
+                            <span class="result-source-type"
+                                  th:classappend="${result.sourceType() == 'crawler'} ? ' is-crawler' : ' is-document'"
+                                  th:text="${result.sourceType() == 'crawler'} ? '🌐 Web' : '📄 Document'">
+                                Document
+                            </span>
+                            <span class="result-chunk">chunk <span th:text="${result.chunkNumber}">0</span></span>
+                            <span class="result-score-badge"
+                                  th:classappend="${result.score >= 0.7} ? ' score-high' : (${result.score >= 0.4} ? ' score-mid' : ' score-low')"
+                                  th:text="'score: ' + ${#numbers.formatDecimal(result.score, 1, 3)}">score: 0.000</span>
+                        </div>
+                        <p class="result-text" th:text="${result.text}">chunk text</p>
+                        <div class="result-actions">
+                            <!-- For uploaded documents -->
+                            <a class="table-link"
+                               th:if="${result.sourceType() == 'document' and result.documentId != null}"
+                               th:href="@{/documents/{id}(id=${result.documentId})}">View source document</a>
+                            
+                            <!-- For crawler content -->
+                            <a class="table-link"
+                               th:if="${result.sourceType() == 'crawler' and result.sourceUrl != null}"
+                               th:href="${result.sourceUrl}"
+                               target="_blank">Visit source page ↗</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <!-- Empty state -->
+            <div th:if="${#lists.isEmpty(results)}" class="card empty-retrieve-card">
+                <p class="empty-retrieve-title">No matching chunks found</p>
+                <p class="muted">Try a different query, or upload more documents to broaden the knowledge base.</p>
+            </div>
+
+        </section>
+
+        <!-- Intro when no search yet -->
+        <section th:if="${results == null}" class="card retrieve-hint-card">
+            <p class="eyebrow">How it works</p>
+            <p class="muted">Your query is converted into a vector embedding and compared against all indexed document chunks using cosine similarity. The closest matching chunks are returned ranked by relevance score.</p>
+            <ul class="hint-list">
+                <li>Use natural language — questions, phrases, or keywords all work.</li>
+                <li>A higher score (closer to 1.0) means a stronger semantic match.</li>
+                <li>Use the <strong>Top N</strong> selector to control how many results are returned.</li>
+                <li>Rate results with 👍 / 👎 to help track retrieval quality over time.</li>
+            </ul>
+        </section>
+
+    </main>
+</div>
+</body>
+</html>

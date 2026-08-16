@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insight Vault | Web Crawler</title>
+    <link rel="stylesheet" th:href="@{/css/application.css}" />
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-mark">IV</div>
+            <div>
+                <div class="brand-name">Insight Vault</div>
+                <div class="brand-subtitle">Web crawler</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <a class="nav-link" th:href="@{/home}">Overview</a>
+            <a class="nav-link" th:href="@{/documents}">Documents</a>
+            <a class="nav-link" th:href="@{/documents/upload}">Upload</a>
+            <a class="nav-link" th:href="@{/retrieve}">Search</a>
+            <a class="nav-link active" th:href="@{/crawler}">Crawler</a>
+            <a class="nav-link" th:href="@{/admin/statistics}" sec:authorize="hasRole('ADMIN')">Statistics</a>
+            <a class="nav-link" th:href="@{/admin/monitoring}" sec:authorize="hasRole('ADMIN')">Monitoring</a>
+        </nav>
+
+        <div class="user-block">
+            <span class="user-name" sec:authentication="name">user</span>
+            <form th:action="@{/logout}" method="post" class="inline-form">
+                <button type="submit" class="link-button">Logout</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="main-panel">
+
+        <!-- Start New Crawler -->
+        <section class="card crawler-start-card">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Web harvesting</p>
+                    <h1>Start a new crawler</h1>
+                </div>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <form th:action="@{/crawler/start}" method="post" class="crawler-form">
+                <div class="form-group">
+                    <label for="seedUrl">Seed URL</label>
+                    <input id="seedUrl"
+                           name="seedUrl"
+                           type="url"
+                           placeholder="https://example.com"
+                           required
+                           autocomplete="off" />
+                    <small>Starting point for the crawler. Only pages on the same domain will be crawled.</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button primary">Start Crawler</button>
+                </div>
+            </form>
+
+            <div class="crawler-hint">
+                <strong>How it works:</strong>
+                <ul>
+                    <li>Crawler starts from the seed URL</li>
+                    <li>Automatically discovers links on the page</li>
+                    <li>Scrapes content and chunks it</li>
+                    <li>Indexes chunks into the search engine</li>
+                    <li>Continue crawling until you pause or stop</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Active Crawlers -->
+        <section class="card crawler-list-card" th:if="${!#lists.isEmpty(crawlers)}">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Active sessions</p>
+                    <h1>Crawler history</h1>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Seed URL</th>
+                            <th>Status</th>
+                            <th>Pages crawled</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="crawler : ${crawlers}">
+                            <td class="url-cell" th:text="${crawler.seedUrl}">-</td>
+                            <td>
+                                <span class="status-badge"
+                                      th:classappend="${crawler.status.name() == 'RUNNING'} ? ' is-running' : (${crawler.status.name() == 'PAUSED'} ? ' is-paused' : (${crawler.status.name() == 'ERROR'} ? ' is-failed' : ' is-idle'))"
+                                      th:text="${crawler.status}">IDLE</span>
+                            </td>
+                            <td th:text="${crawler.pagesCrawled}">0</td>
+                            <td th:text="${#temporals.format(crawler.createdAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                            <td>
+                                <a class="table-link" th:href="@{/crawler/{id}(id=${crawler.id})}">View</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Empty State -->
+        <section th:if="${#lists.isEmpty(crawlers)}" class="card empty-state-card">
+            <p class="empty-title">No crawlers yet</p>
+            <p class="muted">Start a new crawler above to begin harvesting content from websites.</p>
+        </section>
+
+    </main>
+</div>
+</body>
+</html>
